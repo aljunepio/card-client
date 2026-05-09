@@ -208,7 +208,7 @@ function App() {
       const frontImage = canvasRef.current.toDataURL("image/jpeg", 1.0);
 
       // Back image
-      const backImage = "/card-back.jpg";
+      const backImage = "https://res.cloudinary.com/dxeqrhxvt/image/upload/v1778347577/card-back_xqisr9.jpg";
 
       // Send to server
       const response = await fetch(API_URL, {
