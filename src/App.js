@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 
 function App() {
   // =============================================
@@ -87,14 +87,6 @@ function App() {
   }, [pasteTarget]);
 
   // =============================================
-  // AUTO REDRAW
-  // =============================================
-
-  useEffect(() => {
-    drawCard();
-  }, [driver]);
-
-  // =============================================
   // LOAD IMAGE
   // =============================================
 
@@ -115,7 +107,7 @@ function App() {
   // DRAW CARD
   // =============================================
 
-  const drawCard = async () => {
+  const drawCard = useCallback(async () => {
     const canvas = canvasRef.current;
 
     const ctx = canvas.getContext("2d");
@@ -154,11 +146,11 @@ function App() {
     if (driver.photo) {
       const img = await loadImage(driver.photo);
 
-      const boxW = 230;
-      const boxH = 290;
+      const boxW = 200;
+      const boxH = 250;
 
       const boxX = 55;
-      const boxY = 20;
+      const boxY = 90;
 
       const ratio = Math.min(boxW / img.width, boxH / img.height);
 
@@ -191,7 +183,15 @@ function App() {
 
       ctx.drawImage(logoImg, anchorX - w, anchorY, w, h);
     }
-  };
+  }, [driver]);
+
+  // =============================================
+  // AUTO REDRAW
+  // =============================================
+
+  useEffect(() => {
+    drawCard();
+  }, [drawCard]);
 
   // =============================================
   // SEND PRINT JOB TO SERVER
