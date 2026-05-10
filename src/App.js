@@ -1,3 +1,4 @@
+import jsPDF from "jspdf";
 import React, { useState, useRef, useEffect, useCallback } from "react";
 
 function App() {
@@ -204,11 +205,41 @@ function App() {
       // Redraw latest card
       await drawCard();
 
-      // Front image
-      const frontImage = canvasRef.current.toDataURL("image/jpeg", 1.0);
+      const pdf = new jsPDF({
+        orientation: "landscape",
+        unit: "in",
+        format: [3.375, 2.125],
+      });
+
+      const frontImage = canvasRef.current.toDataURL(
+        "image/jpeg",
+        1.0
+      );
+
+      pdf.addImage(
+        frontImage,
+        "JPEG",
+        0,
+        0,
+        3.375,
+        2.125
+      );
 
       // Back image
       const backImage = "https://res.cloudinary.com/dxeqrhxvt/image/upload/v1778347577/card-back_xqisr9.jpg";
+      
+      pdf.addPage([3.375, 2.125], "landscape");
+
+      pdf.addImage(
+        backImage,
+        "JPEG",
+        0,
+        0,
+        3.375,
+        2.125
+      );
+
+      const pdfBase64 = pdf.output("datauristring");
 
       // Send to server
       const response = await fetch(API_URL, {
@@ -220,15 +251,14 @@ function App() {
         },
 
         body: JSON.stringify({
-          frontImage,
-          backImage,
+          pdf: pdfBase64,
           driver: {
             name: driver.name,
             idNumber: driver.idNumber,
             issueDate: driver.issueDate,
           },
           createdAt: new Date().toISOString(),
-        }),
+        })
       });
 
       if (!response.ok) {
