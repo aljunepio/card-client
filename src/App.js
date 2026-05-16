@@ -1,5 +1,5 @@
-import jsPDF from "jspdf";
 import React, { useState, useRef, useEffect, useCallback } from "react";
+import "./App.css";
 
 function App() {
   // =============================================
@@ -13,8 +13,34 @@ function App() {
   const API_TOKEN = "my-secret-token";
 
   // =============================================
+  // RESPONSIVE STATE
+  // =============================================
+
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+
+  // =============================================
   // HELPERS
   // =============================================
+
+  const isMobile = windowWidth < 768;
+  // const isTablet = windowWidth >= 768 && windowWidth < 1024;
+  
+  // const getCanvasWidth = () => {
+  //   if (isMobile) return Math.min(windowWidth - 30, 320);
+  //   if (isTablet) return 500;
+  //   return 800;
+  // };
+
+  // const getInputWidth = () => {
+  //   if (isMobile) return "100%";
+  //   if (isTablet) return "90%";
+  //   return 400;
+  // };
+
+  const getButtonGap = () => {
+    if (isMobile) return "8px";
+    return "15px";
+  };
 
   const formatDate = (date) => {
     const months = [
@@ -59,6 +85,15 @@ function App() {
   // =============================================
   // IMAGE PASTE HANDLER
   // =============================================
+
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => {
     const handlePaste = (e) => {
@@ -205,41 +240,11 @@ function App() {
       // Redraw latest card
       await drawCard();
 
-      const pdf = new jsPDF({
-        orientation: "landscape",
-        unit: "in",
-        format: [3.375, 2.125],
-      });
-
-      const frontImage = canvasRef.current.toDataURL(
-        "image/jpeg",
-        1.0
-      );
-
-      pdf.addImage(
-        frontImage,
-        "JPEG",
-        0,
-        0,
-        3.375,
-        2.125
-      );
+      // Front image
+      const frontImage = canvasRef.current.toDataURL("image/jpeg", 1.0);
 
       // Back image
       const backImage = "https://res.cloudinary.com/dxeqrhxvt/image/upload/v1778347577/card-back_xqisr9.jpg";
-      
-      pdf.addPage([3.375, 2.125], "landscape");
-
-      pdf.addImage(
-        backImage,
-        "JPEG",
-        0,
-        0,
-        3.375,
-        2.125
-      );
-
-      const pdfBase64 = pdf.output("datauristring");
 
       // Send to server
       const response = await fetch(API_URL, {
@@ -251,14 +256,15 @@ function App() {
         },
 
         body: JSON.stringify({
-          pdf: pdfBase64,
+          frontImage,
+          backImage,
           driver: {
             name: driver.name,
             idNumber: driver.idNumber,
             issueDate: driver.issueDate,
           },
           createdAt: new Date().toISOString(),
-        })
+        }),
       });
 
       if (!response.ok) {
@@ -282,184 +288,128 @@ function App() {
   // =============================================
 
   return (
-    <div
-      style={{
-        padding: "30px",
-        textAlign: "center",
-        backgroundColor: "#f4f4f9",
-        minHeight: "100vh",
-      }}
-    >
-      <h2>Matica XID 8300 - ID Generator</h2>
+    <div className="app-container">
+      <div className="app-content">
+        {/* HEADER */}
+        <div className="header-section">
+          <h1 className="app-title">Matica XID 8300</h1>
+          <p className="app-subtitle">ID Generator</p>
+        </div>
 
-      {/* ============================================= */}
-      {/* TARGET BUTTONS */}
-      {/* ============================================= */}
+        {/* MAIN CONTENT - TWO COLUMN LAYOUT */}
+        <div className="main-layout">
+          {/* LEFT SIDE - FORM */}
+          <div className="form-column">
+            {/* TARGET BUTTONS */}
+            <div className="target-buttons" style={{ gap: getButtonGap() }}>
+              <button
+                onClick={() => setPasteTarget("photo")}
+                className={`target-btn ${pasteTarget === "photo" ? "active" : "inactive"}`}
+              >
+                <span className="btn-icon">🎯</span>
+                <span className="btn-text">Driver Photo</span>
+              </button>
 
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          gap: "15px",
-          marginBottom: "20px",
-        }}
-      >
-        <button
-          onClick={() => setPasteTarget("photo")}
-          style={{
-            padding: "12px 20px",
-            borderRadius: "8px",
-            cursor: "pointer",
-            border: "none",
-            background: pasteTarget === "photo" ? "#002060" : "#888",
-            color: "white",
-          }}
-        >
-          🎯 Target: Driver Photo
-        </button>
+              <button
+                onClick={() => setPasteTarget("logo")}
+                className={`target-btn ${pasteTarget === "logo" ? "active" : "inactive"}`}
+              >
+                <span className="btn-icon">🏢</span>
+                <span className="btn-text">Company Logo</span>
+              </button>
+            </div>
 
-        <button
-          onClick={() => setPasteTarget("logo")}
-          style={{
-            padding: "12px 20px",
-            borderRadius: "8px",
-            cursor: "pointer",
-            border: "none",
-            background: pasteTarget === "logo" ? "#002060" : "#888",
-            color: "white",
-          }}
-        >
-          🏢 Target: Company Logo
-        </button>
-      </div>
+            {/* FORM SECTION */}
+            <div className="form-section">
+              <div className="form-group">
+                <label className="input-label">Full Name</label>
+                <input
+                  type="text"
+                  placeholder="Enter driver full name"
+                  value={driver.name}
+                  onChange={(e) =>
+                    setDriver({
+                      ...driver,
+                      name: toProperCase(e.target.value),
+                    })
+                  }
+                  className="input-field"
+                />
+              </div>
 
-      {/* ============================================= */}
-      {/* CANVAS */}
-      {/* ============================================= */}
+              <div className="form-group">
+                <label className="input-label">ID Number</label>
+                <input
+                  type="text"
+                  placeholder="Enter ID number"
+                  value={driver.idNumber}
+                  onChange={(e) =>
+                    setDriver({
+                      ...driver,
+                      idNumber: e.target.value,
+                    })
+                  }
+                  className="input-field"
+                />
+              </div>
 
-      <canvas
-        ref={canvasRef}
-        width="1012"
-        height="638"
-        style={{
-          border: "4px solid #fff",
-          boxShadow: "0 4px 15px rgba(0,0,0,0.2)",
-          borderRadius: "15px",
-          background: "#fff",
-          width: "800px",
-        }}
-      />
+              <div className="form-group">
+                <label className="input-label">Issue Date</label>
+                <input
+                  type="text"
+                  placeholder="DD-MMM-YYYY"
+                  value={driver.issueDate}
+                  onChange={(e) =>
+                    setDriver({
+                      ...driver,
+                      issueDate: e.target.value,
+                    })
+                  }
+                  className="input-field"
+                />
+              </div>
+            </div>
 
-      {/* ============================================= */}
-      {/* FORM */}
-      {/* ============================================= */}
+            {/* ACTION BUTTONS */}
+            <div className="action-buttons">
+              <button
+                onClick={() =>
+                  setDriver({
+                    ...driver,
+                    name: "",
+                    idNumber: "",
+                    photo: null,
+                    logo: null,
+                  })
+                }
+                className="btn-reset"
+              >
+                🔄 Reset
+              </button>
 
-      <div
-        style={{
-          marginTop: "30px",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: "12px",
-        }}
-      >
-        <input
-          type="text"
-          placeholder="Driver Full Name"
-          value={driver.name}
-          onChange={(e) =>
-            setDriver({
-              ...driver,
-              name: toProperCase(e.target.value),
-            })
-          }
-          style={{
-            width: "400px",
-            padding: "12px",
-            borderRadius: "5px",
-            border: "1px solid #ccc",
-          }}
-        />
+              <button
+                onClick={handlePrint}
+                disabled={loading}
+                className="btn-print"
+              >
+                {loading ? "⏳ Sending..." : "🖨️ SEND TO PRINT"}
+              </button>
+            </div>
+          </div>
 
-        <input
-          type="text"
-          placeholder="ID Number"
-          value={driver.idNumber}
-          onChange={(e) =>
-            setDriver({
-              ...driver,
-              idNumber: e.target.value,
-            })
-          }
-          style={{
-            width: "400px",
-            padding: "12px",
-            borderRadius: "5px",
-            border: "1px solid #ccc",
-          }}
-        />
-
-        <input
-          type="text"
-          placeholder="Issue Date"
-          value={driver.issueDate}
-          onChange={(e) =>
-            setDriver({
-              ...driver,
-              issueDate: e.target.value,
-            })
-          }
-          style={{
-            width: "400px",
-            padding: "12px",
-            borderRadius: "5px",
-            border: "1px solid #ccc",
-          }}
-        />
-
-        {/* ============================================= */}
-        {/* ACTION BUTTONS */}
-        {/* ============================================= */}
-
-        <div style={{ marginTop: "10px" }}>
-          <button
-            onClick={() =>
-              setDriver({
-                ...driver,
-                name: "",
-                idNumber: "",
-                photo: null,
-                logo: null,
-              })
-            }
-            style={{
-              marginRight: "15px",
-              padding: "12px 25px",
-              borderRadius: "5px",
-              border: "1px solid #888",
-              background: "white",
-              cursor: "pointer",
-            }}
-          >
-            Reset
-          </button>
-
-          <button
-            onClick={handlePrint}
-            disabled={loading}
-            style={{
-              padding: "12px 60px",
-              borderRadius: "5px",
-              border: "none",
-              background: loading ? "#999" : "#28a745",
-              color: "white",
-              fontSize: "18px",
-              fontWeight: "bold",
-              cursor: loading ? "not-allowed" : "pointer",
-            }}
-          >
-            {loading ? "⏳ Sending..." : "🖨️ SEND TO PRINT SERVER"}
-          </button>
+          {/* RIGHT SIDE - PREVIEW */}
+          <div className="preview-column">
+            <div className="canvas-wrapper">
+              <p className="canvas-label">Live Preview</p>
+              <canvas
+                ref={canvasRef}
+                width="1012"
+                height="638"
+                className="canvas-element"
+              />
+              <p className="paste-hint">💡 Paste images while a target is selected</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
