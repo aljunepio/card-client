@@ -263,17 +263,19 @@ function App() {
             idNumber: driver.idNumber,
             issueDate: driver.issueDate,
           },
-          createdAt: new Date().toISOString(),
+          status: "requested",
+          approvalStatus: "requested",
+          printRequestedAt: new Date().toISOString(),
         }),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to send print job");
+        throw new Error("Failed to send print request");
       }
 
       const result = await response.json();
 
-      alert(`Print job queued successfully!\nJob ID: ${result.jobId}`);
+      alert(`Print request sent successfully!\nRequest ID: ${result.jobId}`);
     } catch (e) {
       console.error(e);
 
@@ -392,7 +394,7 @@ function App() {
                 disabled={loading}
                 className="btn-print"
               >
-                {loading ? "⏳ Sending..." : "🖨️ SEND TO PRINT"}
+                {loading ? "⏳ Sending..." : "🖨️ REQUEST PRINT APPROVAL"}
               </button>
             </div>
           </div>
