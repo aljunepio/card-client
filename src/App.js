@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import "./App.css";
+import { cardTemplates } from "./cardTemplates";
 
 function App() {
   // =============================================
@@ -31,12 +32,6 @@ function App() {
   //   return 800;
   // };
 
-  // const getInputWidth = () => {
-  //   if (isMobile) return "100%";
-  //   if (isTablet) return "90%";
-  //   return 400;
-  // };
-
   const getButtonGap = () => {
     if (isMobile) return "8px";
     return "15px";
@@ -64,14 +59,31 @@ function App() {
   const toProperCase = (str) =>
     str.toLowerCase().replace(/\b\w/g, (s) => s.toUpperCase());
 
+  const getDefaultExpirationDate = () => {
+    const date = new Date();
+    date.setFullYear(date.getFullYear() + 1);
+    return formatDate(date);
+  };
+
+  // const getInputWidth = () => {
+  //   if (isMobile) return "100%";
+  //   if (isTablet) return "90%";
+  //   return 400;
+  // };
+
   // =============================================
   // STATE
   // =============================================
+
+  const [template, setTemplate] = useState(cardTemplates[0].id);
+  const activeTemplate =
+    cardTemplates.find((item) => item.id === template) || cardTemplates[0];
 
   const [driver, setDriver] = useState({
     name: "",
     idNumber: "",
     issueDate: formatDate(new Date()),
+    expirationDate: getDefaultExpirationDate(),
     photo: null,
     logo: null,
   });
@@ -164,16 +176,21 @@ function App() {
     ctx.fillStyle = "#002060";
     ctx.font = "bold 32px Arial";
 
-    ctx.fillText("NAME:", 55, 450);
-    ctx.fillText("ID NUMBER:", 55, 510);
-    ctx.fillText("ISSUE DATE:", 55, 570);
+    activeTemplate.fields.forEach((field) => {
+      const labelX = field.labelX ?? 55;
+      const lineY = field.y;
+      ctx.fillText(`${field.label}:`, labelX, lineY);
+    });
 
     ctx.fillStyle = "black";
     ctx.font = "32px Arial";
 
-    ctx.fillText(driver.name, 175, 450);
-    ctx.fillText(driver.idNumber, 265, 510);
-    ctx.fillText(driver.issueDate, 265, 570);
+    activeTemplate.fields.forEach((field) => {
+      const valueX = field.valueX ?? 265;
+      const lineY = field.y;
+      const value = driver[field.id] || "";
+      ctx.fillText(value, valueX, lineY);
+    });
 
     // =============================================
     // DRIVER PHOTO
@@ -219,7 +236,7 @@ function App() {
 
       ctx.drawImage(logoImg, anchorX - w, anchorY, w, h);
     }
-  }, [driver]);
+  }, [driver, activeTemplate]);
 
   // =============================================
   // AUTO REDRAW
@@ -292,8 +309,7 @@ function App() {
       <div className="app-content">
         {/* HEADER */}
         <div className="header-section">
-          <h1 className="app-title">Matica XID 8300</h1>
-          <p className="app-subtitle">ID Generator</p>
+          <p className="app-subtitle">RFID Card Generator</p>
         </div>
 
         {/* MAIN CONTENT - TWO COLUMN LAYOUT */}
@@ -322,52 +338,40 @@ function App() {
             {/* FORM SECTION */}
             <div className="form-section">
               <div className="form-group">
-                <label className="input-label">Full Name</label>
-                <input
-                  type="text"
-                  placeholder="Enter driver full name"
-                  value={driver.name}
-                  onChange={(e) =>
-                    setDriver({
-                      ...driver,
-                      name: toProperCase(e.target.value),
-                    })
-                  }
+                <label className="input-label">Card design</label>
+                <select
+                  value={template}
+                  onChange={(e) => setTemplate(e.target.value)}
                   className="input-field"
-                />
+                >
+                  {cardTemplates.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
               </div>
 
-              <div className="form-group">
-                <label className="input-label">ID Number</label>
-                <input
-                  type="text"
-                  placeholder="Enter ID number"
-                  value={driver.idNumber}
-                  onChange={(e) =>
-                    setDriver({
-                      ...driver,
-                      idNumber: e.target.value,
-                    })
-                  }
-                  className="input-field"
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="input-label">Issue Date</label>
-                <input
-                  type="text"
-                  placeholder="DD-MMM-YYYY"
-                  value={driver.issueDate}
-                  onChange={(e) =>
-                    setDriver({
-                      ...driver,
-                      issueDate: e.target.value,
-                    })
-                  }
-                  className="input-field"
-                />
-              </div>
+              {activeTemplate.fields.map((field) => (
+                <div className="form-group" key={field.id}>
+                  <label className="input-label">{field.label}</label>
+                  <input
+                    type="text"
+                    placeholder={field.placeholder}
+                    value={driver[field.id] || ""}
+                    onChange={(e) =>
+                      setDriver({
+                        ...driver,
+                        [field.id]:
+                          field.id === "name"
+                            ? toProperCase(e.target.value)
+                            : e.target.value,
+                      })
+                    }
+                    className="input-field"
+                  />
+                </div>
+              ))}
             </div>
 
             {/* ACTION BUTTONS */}
@@ -378,6 +382,8 @@ function App() {
                     ...driver,
                     name: "",
                     idNumber: "",
+                    issueDate: formatDate(new Date()),
+                    expirationDate: getDefaultExpirationDate(),
                     photo: null,
                     logo: null,
                   })
